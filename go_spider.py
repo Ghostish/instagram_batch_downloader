@@ -4,7 +4,7 @@ import json
 import os, sys
 from  getopt import getopt
 
-    
+
 def progress(curr, total):
     percentage = min(curr * 100 // total, 100)
     curr = min(curr, total)
@@ -212,8 +212,9 @@ if __name__ == '__main__':
     try:
         s = Spider(username, max_page, dtype, after)
         s.download()
-    finally:
+    except KeyboardInterrupt:
         print("shutting down")
+    finally:
         with open('ig_spider.meta', 'w') as f:
             meta = s.json_dump()
             f.write(meta)
