@@ -17,15 +17,16 @@ A python script which allows you to download all the photos and video under an i
     3 for both  
     The default value is 3.
 
-+ -m max_page:  
++ -m max_page_count:  
     The maximum number of pages that you want to download.  
     The default value is 9999.  
     Normally each page contains 12 files
 
 + -C  
-    Continue the last download
+    Continue the last download. If -C is given, all the other arguments will be ignored.
 
-
++ -A  
+    Download posts after the last download, Similiar to -C, but allow you to reconfig -t and -m
 ## examples:
 ```python
 python3 go_spider.py -u nasa -m 5 -t 3
