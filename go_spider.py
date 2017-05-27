@@ -28,33 +28,46 @@ class Spider:
             self.session = requests.Session()
 
         def download(self, account, code):
+            """download content of the post given by the code"""
+
             url = Spider.BASE_URL + "/p/%s/?taken-by=%s" % (code, account)
             r = self.session.get(url)
             content_match = re.search(r"<script.*?>\s*?window._sharedData\s*?=\s*?({.*}).*?</script>", r.text,
                                       re.MULTILINE)
             data = json.loads(content_match.group(1))
             media = data['entry_data']['PostPage'][0]['graphql']['shortcode_media']
-            if media['is_video']:
-                download_url = media["video_url"]
-            else:
-                download_url = media["display_url"]
+            download_urls = []
+            if media['__typename'] == 'GraphVideo':  # video
+                download_urls.append(media["video_url"])
+            if media['__typename'] == 'GraphImage':  # image
+                download_urls.append(media["display_url"])
+            if media['__typename'] == 'GraphSidecar':  # slide
+                nodes = media['edge_sidecar_to_children']['edges']
+                for node in nodes:
+                    node = node['node']
+                    if node['is_video']:
+                        download_urls.append(node['video_url'])
+                    else:
+                        download_urls.append(node['display_url'])
+
             if not os.path.isdir(account):
                 os.mkdir(account)
-            filename = account + '/' + download_url.split('/')[-1]
-            temp_name = filename + '.tmp'
-            if os.path.isfile(filename):
-                print('file', filename, "already exists, skipping")
-            else:
-                print('downloading %s:' % (filename))
-                r = self.session.get(download_url, stream=True)
-                content_length = int(r.headers['content-length'])
-                curr = 0
-                with open(temp_name, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        f.write(chunk)
-                        curr += 1024
-                        progress(curr, content_length)
-                os.rename(temp_name, filename)
+            for url in download_urls:
+                filename = account + '/' + url.split('/')[-1]
+                temp_name = filename + '.tmp'
+                if os.path.isfile(filename):
+                    print('file', filename, "already exists, skipping")
+                else:
+                    print('downloading %s:' % (filename))
+                    r = self.session.get(url, stream=True)
+                    content_length = int(r.headers['content-length'])
+                    curr = 0
+                    with open(temp_name, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            f.write(chunk)
+                            curr += 1024
+                            progress(curr, content_length)
+                    os.rename(temp_name, filename)
 
         def close(self):
             self.session.close()
@@ -127,62 +140,6 @@ class Spider:
         if self.page_count < self.max_page and not self.has_next:
             print("no more pages. exiting...")
 
-
-# max_page = 9999
-# page_count = 0
-# download_type = TYPE_BOTH
-# username = 'irenenoren'
-#
-# target_url = BASE_URL + '/' + username
-#
-# s = requests.Session()
-#
-# print('getting info...')
-# r = s.get(target_url)
-#
-# match = re.search(r"<script.*?>\s*?window._sharedData\s*?=\s*?({.*}).*?</script>", r.text, flags=re.MULTILINE)
-# shared_data = json.loads(match.group(1))
-# target_user = shared_data['entry_data']['ProfilePage'][0]['user']
-# target_id = target_user['id']
-# csrf_token = shared_data['config']['csrf_token']
-# has_next = target_user['media']['page_info']['has_next_page']
-# end_cursor = target_user['media']['page_info']['end_cursor']
-# nodes = target_user['media']['nodes']
-# match = re.search(r"<script.*?Commons\.js/(.*js)", r.text)
-# js_name = match.group(1)
-# r = s.get(SCRIPT_URL + js_name)
-# match = re.search(r'ye="(\d+)"', r.text)
-# query_id = match.group(1)
-# print('starting...')
-# print('downloading page', page_count + 1)
-# dowloader = Downloader()
-# for node in nodes:
-#     is_video = node['is_video']
-#     if not (is_video and download_type == TYPE_PHOTO or not is_video and download_type == TYPE_VIDEO):
-#         dowloader.download(username, node['code'])
-# page_count += 1
-#
-# while page_count < max_page and has_next:
-#     print('downloading page', page_count + 1)
-#     query_data = {"query_id": query_id,
-#                   "id": target_id,
-#                   "first": 12,
-#                   "after": end_cursor}
-#     r = s.get(QUERY_URL, params=query_data)
-#     more = json.loads(r.text)
-#     media = more['data']['user']['edge_owner_to_timeline_media']
-#     has_next = media['page_info']['has_next_page']
-#     end_cursor = media['page_info']['end_cursor']
-#     nodes = media['edges']
-#     for node in nodes:
-#         node = node['node']
-#         is_video = node['is_video']
-#         if not (is_video and download_type == TYPE_PHOTO or not is_video and download_type == TYPE_VIDEO):
-#             dowloader.download(username, node['shortcode'])
-#     page_count += 1
-#
-# if page_count < max_page and not has_next:
-#     print("no more pages. exiting...")
 if __name__ == '__main__':
     opts, args = getopt(sys.argv[1:], 'Cu:m:t')
     max_page = 9999
