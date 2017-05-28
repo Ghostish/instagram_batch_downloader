@@ -2,7 +2,7 @@ import requests
 import re
 import json
 import os, sys
-from  getopt import getopt
+from getopt import getopt
 
 
 def progress(curr, total):
@@ -80,7 +80,7 @@ class Spider:
         self.page_count = 0
         self.target_url = self.BASE_URL + '/' + username
         self.downloader = self.Downloader()
-        self.prepare()
+        self.end_cursor = None
         if after is not None:
             self.end_cursor = after['end_cursor']
             self.page_count = int(after['last_page'])
@@ -99,11 +99,18 @@ class Spider:
         self.target_id = target_user['id']
         self.csrf_token = shared_data['config']['csrf_token']
         self.has_next = target_user['media']['page_info']['has_next_page']
-        self.end_cursor = target_user['media']['page_info']['end_cursor']
         self.main_nodes = target_user['media']['nodes']
+        if self.end_cursor is None:  # if the end_cursor was already set, don't use the new one
+            self.end_cursor = target_user['media']['page_info']['end_cursor']
+
+        # find the url of the javascript which contains the query id
+        # pattern:
+        # <script type="text/javascript" src="/static/bundles/en_US_Commons.js/97a256f04378.js" crossorigin="anonymous"></script>
         match = re.search(r"<script.*?Commons\.js/(.*js)", r.text)
         js_name = match.group(1)
+        # get the javascript
         r = self.session.get(self.SCRIPT_URL + js_name)
+        # find out the query id
         match = re.search(r'ye="(\d+)"', r.text)
         self.query_id = match.group(1)
 
@@ -184,9 +191,12 @@ if __name__ == '__main__':
                 exit(0)
     s = Spider(username, max_page_count, dtype, after)
     try:
+        s.prepare()
         s.download()
     except KeyboardInterrupt:
         print("shutting down")
+    except requests.RequestException:
+        print('A network error occurred, please retry')
     finally:
         with open('ig_spider.meta', 'w') as f:
             meta = s.json_dump()
