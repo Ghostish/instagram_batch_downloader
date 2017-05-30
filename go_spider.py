@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import requests
 import re
 import json
@@ -24,8 +25,9 @@ class Spider:
     SCRIPT_URL = BASE_URL + "/static/bundles/en_US_Commons.js/"
 
     class Downloader:
-        def __init__(self):
+        def __init__(self, spider):
             self.session = requests.Session()
+            self.spider = spider
 
         def download(self, account, code):
             """download content of the post given by the code"""
@@ -58,7 +60,7 @@ class Spider:
                 if os.path.isfile(filename):
                     print('file', filename, "already exists, skipping")
                 else:
-                    print('downloading %s:' % (filename))
+                    print('downloading %s:' % filename)
                     r = self.session.get(url, stream=True)
                     content_length = int(r.headers['content-length'])
                     curr = 0
@@ -68,18 +70,20 @@ class Spider:
                             curr += 1024
                             progress(curr, content_length)
                     os.rename(temp_name, filename)
+                    self.spider.item_count += 1
 
         def close(self):
             self.session.close()
 
     def __init__(self, username, max_page_count, download_type, after):
         self.session = requests.Session()
+        self.item_count = 0
         self.max_page = max_page_count
         self.username = username
         self.download_type = download_type
         self.page_count = 0
         self.target_url = self.BASE_URL + '/' + username
-        self.downloader = self.Downloader()
+        self.downloader = self.Downloader(self)
         self.end_cursor = None
         if after is not None:
             self.end_cursor = after['end_cursor']
@@ -195,9 +199,13 @@ if __name__ == '__main__':
         s.download()
     except KeyboardInterrupt:
         print("shutting down")
-    except requests.RequestException:
-        print('A network error occurred, please retry')
+    except KeyError:
+        print('KeyError:', 'Make sure you give the correct username', file=sys.stderr)
+    except requests.RequestException as e:
+        print('A network error occurred, please retry', file=sys.stderr)
+        print(e, file=sys.stderr)
     finally:
+        print('Downloaded', s.item_count, 'items')
         with open('ig_spider.meta', 'w') as f:
             meta = s.json_dump()
             f.write(meta)
