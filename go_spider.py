@@ -17,9 +17,9 @@ def progress(curr, total):
 
 
 class Spider:
-    TYPE_VIDEO = 1
-    TYPE_PHOTO = 2
-    TYPE_BOTH = 3
+    TYPE_VIDEO = 'VIDEO'
+    TYPE_PHOTO = 'PHOTO'
+    TYPE_BOTH = 'BOTH'
     BASE_URL = 'https://www.instagram.com'
     QUERY_URL = BASE_URL + '/graphql/query/'
     SCRIPT_URL = BASE_URL + "/static/bundles/en_US_Commons.js/"
@@ -156,6 +156,10 @@ class Spider:
             print("no more pages.")
         print('done. exiting...')
 
+    def close(self):
+        self.session.close()
+        self.downloader.close()
+
 
 if __name__ == '__main__':
     opts, args = getopt(sys.argv[1:], 'Cu:m:t:A')
@@ -171,7 +175,7 @@ if __name__ == '__main__':
         if op == '-m':
             max_page_count = int(val)
         if op == '-t':
-            dtype = int(val)
+            dtype = val.upper()
         if op == '-A':
             if os.path.isfile('ig_spider.meta'):
                 with open('ig_spider.meta', 'r') as f:
@@ -193,6 +197,12 @@ if __name__ == '__main__':
             else:
                 print('can not find ig_spider.meta under', os.getcwd())
                 exit(0)
+    if username is None:
+        print('Please provide a username')
+        exit(0)
+    if dtype not in (Spider.TYPE_BOTH, Spider.TYPE_VIDEO, Spider.TYPE_PHOTO):
+        print('The download type should be one of', (Spider.TYPE_BOTH, Spider.TYPE_VIDEO, Spider.TYPE_PHOTO))
+        exit(0)
     s = Spider(username, max_page_count, dtype, after)
     try:
         s.prepare()
@@ -205,6 +215,7 @@ if __name__ == '__main__':
         print('A network error occurred, please retry', file=sys.stderr)
         print(e, file=sys.stderr)
     finally:
+        s.close()
         print('Downloaded', s.item_count, 'items')
         with open('ig_spider.meta', 'w') as f:
             meta = s.json_dump()
