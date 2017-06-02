@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import argparse
 import sys
 from getopt import getopt
 
@@ -92,7 +93,7 @@ class Spider:
         self.end_cursor = None
         if after is not None:
             self.end_cursor = after['end_cursor']
-            self.page_count = int(after['last_page'])
+            self.page_count = after['last_page']
             self.max_page = self.page_count + max_page_count
 
     def json_dump(self):
@@ -167,47 +168,49 @@ class Spider:
 
 
 if __name__ == '__main__':
-    opts, args = getopt(sys.argv[1:], 'Cu:m:t:A')
-    max_page_count = 9999
-    dtype = Spider.TYPE_BOTH
-    end_cursor = None
-    username = None
+    parser = argparse.ArgumentParser(description="Download the photos and videos from an instagram user's page")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-C', '--Continue', action='store_true', help='continue the last download task.')
+    group.add_argument('-A', '--After', action='store_true', help='download posts after the last downloaded post')
+    group.add_argument('-u', '--username', help='the username')
+    parser.add_argument('-m', '--maxPageCount', type=int, default=9999,
+                        help='the maximum number of pages that you want to download. default 9999')
+    parser.add_argument('-t', '--downloadType', choices=[Spider.TYPE_BOTH, Spider.TYPE_PHOTO, Spider.TYPE_VIDEO],
+                        default=Spider.TYPE_BOTH, help='the download type')
+    args = parser.parse_args()
+
+    username = args.username
+    max_page_count = args.maxPageCount
+    dtype = args.downloadType
     after = None
-    for op, val in opts:
-        if op == '-u':
-            if username is None:  # make sure username is not set in meta file
-                username = val
-        if op == '-m':
-            max_page_count = int(val)
-        if op == '-t':
-            dtype = val.upper()
-        if op == '-A':
-            if os.path.isfile('ig_spider.meta'):
-                with open('ig_spider.meta', 'r') as f:
-                    meta = json.loads(f.read())
-                after = {'end_cursor': meta['end_cursor'], 'last_page': meta['last_page']}
-                username = meta['username']
-            else:
-                print('can not find ig_spider.meta under', os.getcwd())
-                exit(0)
-        if op == '-C':
-            if os.path.isfile('ig_spider.meta'):
-                with open('ig_spider.meta', 'r') as f:
-                    meta = json.loads(f.read())
-                username = meta['username']
-                max_page_count = int(meta['max_page'])
-                dtype = int(meta['download_type'])
-                after = {'end_cursor': meta['end_cursor'], 'last_page': meta['last_page']}
-                break
-            else:
-                print('can not find ig_spider.meta under', os.getcwd())
-                exit(0)
+    if args.Continue:
+        if os.path.isfile('ig_spider.meta'):
+            with open('ig_spider.meta', 'r') as f:
+                meta = json.loads(f.read())
+            username = meta['username']
+            max_page = int(meta['max_page'])
+            last_page = int(meta['last_page'])
+            max_page_count = max_page - last_page
+            dtype = meta['download_type']
+            after = {'end_cursor': meta['end_cursor'], 'last_page': last_page}
+        else:
+            print('can not find ig_spider.meta under', os.getcwd())
+            exit(0)
+    if args.After:
+        if os.path.isfile('ig_spider.meta'):
+            with open('ig_spider.meta', 'r') as f:
+                meta = json.loads(f.read())
+            last_page = int(meta['last_page'])
+            after = {'end_cursor': meta['end_cursor'], 'last_page': last_page}
+            username = meta['username']
+        else:
+            print('can not find ig_spider.meta under', os.getcwd())
+            exit(0)
+
     if username is None:
         print('Please provide a username')
         exit(0)
-    if dtype not in (Spider.TYPE_BOTH, Spider.TYPE_VIDEO, Spider.TYPE_PHOTO):
-        print('The download type should be one of', (Spider.TYPE_BOTH, Spider.TYPE_VIDEO, Spider.TYPE_PHOTO))
-        exit(0)
+
     s = Spider(username, max_page_count, dtype, after)
     try:
         s.prepare()

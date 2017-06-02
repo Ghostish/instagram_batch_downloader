@@ -1,9 +1,9 @@
 # instagram_batch_downloader
-A python script which allows you to download all the photos and video under an instagram user's page.
+A python script which allows you to download all the photos and video from an instagram user's page.
 
 
 ## Dependencies
-+ [python]
++ [python3]
 + [requests]
 
 ## usage:
