@@ -11,8 +11,8 @@ A python script which allows you to download all the photos and video under an i
     The username. eg: NASA, adidas
 
 + -t download_type  
-    A short string which indicates the download_type.  
-    Should be one of 'video', 'photo' and 'both' (case insensitive)
+    A short string which indicates the download_type.   
+    Should be one of 'video', 'photo' and 'both' (case insensitive)  
     The default value is 'both'.
 
 + -m max_page_count:  

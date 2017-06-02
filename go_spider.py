@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-import requests
-import re
 import json
-import os, sys
+import os
+import re
+import sys
 from getopt import getopt
+
+import requests
 
 
 def progress(curr, total):
     percentage = min(curr * 100 // total, 100)
     curr = min(curr, total)
     sys.stdout.write('\r')
-    sys.stdout.write("[%-100s] %d%% %d/%d" % ('=' * percentage, percentage, curr, total))
+    screen_width, screen_height = os.get_terminal_size()
+    progress_width = min(screen_width - len(str(curr) + str(total)) - 10, 20)
+    sys.stdout.write(
+        "[%-*s] %d%% %d/%d" % (progress_width, '=' * (progress_width * percentage // 100), percentage, curr, total))
     if percentage == 100:
         sys.stdout.write('\n')
     sys.stdout.flush()
