@@ -27,7 +27,7 @@ A python script which allows you to download all the photos and video under an i
     Download posts after the last download, Similiar to -C, but allow you to reconfig -t and -m
 ## examples:
 ```python
-python3 go_spider.py -u nasa -m 5 -t 3
+python3 go_spider.py -u nasa -m 5 -t video
 ```
 
 ```python
