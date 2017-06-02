@@ -51,4 +51,4 @@ python3 go_spider.py -C
     limitations under the License.
 
 [requests]:https://github.com/kennethreitz/requests
-[python]:https://www.python.org/
+[python3]:https://www.python.org/
