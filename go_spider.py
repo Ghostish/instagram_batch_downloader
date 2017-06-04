@@ -120,7 +120,7 @@ class Spider:
         # get the javascript
         r = self.session.get(self.SCRIPT_URL + js_name)
         # find out the query id
-        match = re.search(r'ye="(\d+)"', r.text)
+        match = re.search(r'l="(\d+)"', r.text)
         self.query_id = match.group(1)
 
     def download(self):
