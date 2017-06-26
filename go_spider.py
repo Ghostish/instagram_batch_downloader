@@ -28,6 +28,7 @@ class Spider:
     BASE_URL = 'https://www.instagram.com'
     QUERY_URL = BASE_URL + '/graphql/query/'
     SCRIPT_URL = BASE_URL + "/static/bundles/en_US_Commons.js/"
+    HEADERS = {'user-agent':"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
 
     class Downloader:
         def __init__(self, spider):
@@ -120,8 +121,8 @@ class Spider:
         # get the javascript
         r = self.session.get(self.SCRIPT_URL + js_name)
         # find out the query id
-        match = re.search(r'l="(\d+)"', r.text)
-        self.query_id = match.group(1)
+        match = re.findall(r'queryId:"(\d+)"', r.text)
+        self.query_id = match[-1]
 
     def download(self):
         print('starting...')
