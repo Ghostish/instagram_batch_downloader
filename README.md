@@ -25,6 +25,8 @@ A python script which allows you to download all the photos and video from an in
 
 + -A  
     Download posts after the last download, Similiar to -C, but allow you to reconfig -t and -m
++ -S   
+    Stop the program automatically when it first sees a already downloaded file.
 ## examples:
 ```python
 python3 go_spider.py -u nasa -m 5 -t video

@@ -64,6 +64,9 @@ class Spider:
                 filename = account + '/' + url.split('/')[-1]
                 temp_name = filename + '.tmp'
                 if os.path.isfile(filename):
+                    if self.spider.auto_stop:
+                        print('file', filename, "already exists, exiting......")
+                        sys.exit()
                     print('file', filename, "already exists, skipping")
                 else:
                     print('downloading %s:' % filename)
@@ -81,12 +84,13 @@ class Spider:
         def close(self):
             self.session.close()
 
-    def __init__(self, username, max_page_count, download_type, after):
+    def __init__(self, username, max_page_count, download_type, after,auto_stop):
         self.session = requests.Session()
         self.item_count = 0
         self.max_page = max_page_count
         self.username = username
         self.download_type = download_type
+        self.auto_stop = auto_stop
         self.page_count = 0
         self.target_url = self.BASE_URL + '/' + username
         self.downloader = self.Downloader(self)
@@ -177,12 +181,14 @@ if __name__ == '__main__':
                         help='the maximum number of pages that you want to download. default 9999')
     parser.add_argument('-t', '--downloadType', choices=[Spider.TYPE_BOTH, Spider.TYPE_PHOTO, Spider.TYPE_VIDEO],
                         default=Spider.TYPE_BOTH, help='the download type')
+    parser.add_argument('-S', '--AutoStop',action='store_true',help='Stop the program automatically when it first sees a already downloaded file.')
     args = parser.parse_args()
 
     username = args.username
     max_page_count = args.maxPageCount
     dtype = args.downloadType
     after = None
+    auto_stop = args.AutoStop
     if args.Continue:
         if os.path.isfile('ig_spider.meta'):
             with open('ig_spider.meta', 'r') as f:
@@ -211,7 +217,7 @@ if __name__ == '__main__':
         print('Please provide a username')
         exit(0)
 
-    s = Spider(username, max_page_count, dtype, after)
+    s = Spider(username, max_page_count, dtype, after, auto_stop)
     try:
         s.prepare()
         s.download()
@@ -222,6 +228,8 @@ if __name__ == '__main__':
     except requests.RequestException as e:
         print('A network error occurred, please retry', file=sys.stderr)
         print(e, file=sys.stderr)
+    except SystemExit:
+        pass
     finally:
         s.close()
         print('Downloaded', s.item_count, 'items')
