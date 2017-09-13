@@ -28,7 +28,8 @@ class Spider:
     BASE_URL = 'https://www.instagram.com'
     QUERY_URL = BASE_URL + '/graphql/query/'
     SCRIPT_URL = BASE_URL + "/static/bundles/en_US_Commons.js/"
-    HEADERS = {'user-agent':"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
+    HEADERS = {
+        'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
 
     class Downloader:
         def __init__(self, spider):
@@ -84,7 +85,7 @@ class Spider:
         def close(self):
             self.session.close()
 
-    def __init__(self, username, max_page_count, download_type, after,auto_stop):
+    def __init__(self, username, max_page_count, download_type, after, auto_stop):
         self.session = requests.Session()
         self.item_count = 0
         self.max_page = max_page_count
@@ -107,7 +108,8 @@ class Spider:
     def prepare(self):
         print('getting info of', self.username)
         r = self.session.get(self.target_url)
-        match = re.search(r"<script.*?>\s*?window._sharedData\s*?=\s*?({.*}).*?</script>", r.text, flags=re.MULTILINE)
+        match = re.search(
+            r"<script.*?>\s*?window._sharedData\s*?=\s*?({.*}).*?</script>", r.text, flags=re.MULTILINE)
         shared_data = json.loads(match.group(1))
         target_user = shared_data['entry_data']['ProfilePage'][0]['user']
         self.target_id = target_user['id']
@@ -126,7 +128,8 @@ class Spider:
         r = self.session.get(self.SCRIPT_URL + js_name)
         # find out the query id
         match = re.findall(r'queryId:"(\d+)"', r.text)
-        self.query_id = match[-1]
+        self.query_id = match[-2]
+        # print(self.query_id)
 
     def download(self):
         print('starting...')
@@ -135,17 +138,20 @@ class Spider:
             for node in self.main_nodes:
                 is_video = node['is_video']
                 if not ((is_video and self.download_type == self.TYPE_PHOTO) or (
-                            not is_video and self.download_type == self.TYPE_VIDEO)):
+                        not is_video and self.download_type == self.TYPE_VIDEO)):
                     self.downloader.download(self.username, node['code'])
             self.page_count += 1
 
         while self.page_count < self.max_page and self.has_next:
             print('downloading page', self.page_count + 1)
+
             query_data = {"query_id": self.query_id,
-                          "id": self.target_id,
-                          "first": 12,
-                          "after": self.end_cursor}
+                          "variables": json.dumps({"id": self.target_id,
+                                                   "first": 12,
+                                                   "after": self.end_cursor})}
+
             r = self.session.get(self.QUERY_URL, params=query_data)
+            # print(r.url)
             more = json.loads(r.text)
             if more['data']['user'] is None:
                 print('no more data')
@@ -158,7 +164,7 @@ class Spider:
                 node = node['node']
                 is_video = node['is_video']
                 if not ((is_video and self.download_type == self.TYPE_PHOTO) or (
-                            not is_video and self.download_type == self.TYPE_VIDEO)):
+                        not is_video and self.download_type == self.TYPE_VIDEO)):
                     self.downloader.download(self.username, node['shortcode'])
             self.page_count += 1
 
@@ -172,16 +178,20 @@ class Spider:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Download the photos and videos from an instagram user's page")
+    parser = argparse.ArgumentParser(
+        description="Download the photos and videos from an instagram user's page")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('-C', '--Continue', action='store_true', help='continue the last download task.')
-    group.add_argument('-A', '--After', action='store_true', help='download posts after the last downloaded post')
+    group.add_argument('-C', '--Continue', action='store_true',
+                       help='continue the last download task.')
+    group.add_argument('-A', '--After', action='store_true',
+                       help='download posts after the last downloaded post')
     group.add_argument('-u', '--username', help='the username')
     parser.add_argument('-m', '--maxPageCount', type=int, default=9999,
                         help='the maximum number of pages that you want to download. default 9999')
     parser.add_argument('-t', '--downloadType', choices=[Spider.TYPE_BOTH, Spider.TYPE_PHOTO, Spider.TYPE_VIDEO],
                         default=Spider.TYPE_BOTH, help='the download type')
-    parser.add_argument('-S', '--AutoStop',action='store_true',help='Stop the program automatically when it first sees a already downloaded file.')
+    parser.add_argument('-S', '--AutoStop', action='store_true',
+                        help='Stop the program automatically when it first sees a already downloaded file.')
     args = parser.parse_args()
 
     username = args.username
