@@ -27,7 +27,7 @@ class Spider:
     TYPE_BOTH = 'BOTH'
     BASE_URL = 'https://www.instagram.com'
     QUERY_URL = BASE_URL + '/graphql/query/'
-    SCRIPT_URL = BASE_URL + "/static/bundles/en_US_Commons.js/"
+    SCRIPT_URL = BASE_URL + "/static/bundles/en_US_ConsumerCommons.js/"
     HEADERS = {
         'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
 
