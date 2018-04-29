@@ -4,7 +4,7 @@ import json
 import os
 import re
 import sys
-
+import hashlib
 import requests
 
 
@@ -29,7 +29,7 @@ class Spider:
     QUERY_URL = BASE_URL + '/graphql/query/'
     SCRIPT_URL = BASE_URL + "/static/bundles/ConsumerCommons.js/"
     HEADERS = {
-        'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
+        'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"}
 
     class Downloader:
         def __init__(self, spider):
@@ -111,48 +111,55 @@ class Spider:
         match = re.search(
             r"<script.*?>\s*?window._sharedData\s*?=\s*?({.*}).*?</script>", r.text, flags=re.MULTILINE)
         shared_data = json.loads(match.group(1))
-        target_user = shared_data['entry_data']['ProfilePage'][0]['user']
+        target_user = shared_data['entry_data']['ProfilePage'][0]['graphql']['user']
+        self.rhx_gis = shared_data['rhx_gis']
         self.target_id = target_user['id']
         self.csrf_token = shared_data['config']['csrf_token']
-        self.has_next = target_user['media']['page_info']['has_next_page']
-        self.main_nodes = target_user['media']['nodes']
+        self.has_next = target_user['edge_owner_to_timeline_media']['page_info']['has_next_page']
+        self.main_nodes = target_user['edge_owner_to_timeline_media']['edges']
         if self.end_cursor is None:  # if the end_cursor was already set, don't use the new one
-            self.end_cursor = target_user['media']['page_info']['end_cursor']
+            self.end_cursor = target_user['edge_owner_to_timeline_media']['page_info']['end_cursor']
 
         # find the url of the javascript which contains the query id
         # pattern:
         # <script type="text/javascript" src="/static/bundles/ConsumerCommons.js/53454d5cef0f.js" crossorigin="anonymous"></script>
-        match = re.search(r"/static/bundles/ConsumerCommons\.js/.*\.js", r.text)
-        
+        match = re.search(
+            r"/static/bundles/base/ProfilePageContainer\.js/.*\.js", r.text)
         js_name = match.group(0)
         # get the javascript
         r = self.session.get(self.BASE_URL + js_name)
         # find out the query id
-        match = re.findall(r'queryId:"(\d+)"', r.text)
-        self.query_id = match[-2]
-        print(self.query_id)
+        match = re.findall(r'queryId:"(.+?)"', r.text)
+        self.query_id = match[1]
+        # print(self.query_id)
 
     def download(self):
         print('starting...')
         if self.page_count == 0:
             print('downloading page', self.page_count + 1)
             for node in self.main_nodes:
+                node = node['node']
                 is_video = node['is_video']
                 if not ((is_video and self.download_type == self.TYPE_PHOTO) or (
                         not is_video and self.download_type == self.TYPE_VIDEO)):
-                    self.downloader.download(self.username, node['code'])
+                    self.downloader.download(self.username, node['shortcode'])
             self.page_count += 1
 
         while self.page_count < self.max_page and self.has_next:
             print('downloading page', self.page_count + 1)
 
-            query_data = {"query_id": self.query_id,
-                          "variables": json.dumps({"id": self.target_id,
-                                                   "first": 12,
-                                                   "after": self.end_cursor})}
-
-            r = self.session.get(self.QUERY_URL, params=query_data)
+            request_variables = json.dumps({"id": self.target_id,
+                                            "first": 12,
+                                            "after": self.end_cursor})
+            query_data = {"query_hash": self.query_id,
+                          "variables": request_variables}
+            m = hashlib.md5()
+            m.update("{0}:{1}".format(self.rhx_gis, request_variables).encode('utf-8'))
+            gis = m.hexdigest()
+            r = self.session.get(self.QUERY_URL, params=query_data, headers={
+                                 'X-Instagram-GIS': gis})
             # print(r.url)
+            # print(r)
             more = json.loads(r.text)
             if more['data']['user'] is None:
                 print('no more data')
@@ -234,7 +241,8 @@ if __name__ == '__main__':
         s.download()
     except KeyboardInterrupt:
         print("shutting down")
-    except KeyError:
+    except KeyError as e:
+        print(e)
         print('KeyError:', 'Make sure you give the correct username', file=sys.stderr)
     except requests.RequestException as e:
         print('A network error occurred, please retry', file=sys.stderr)
