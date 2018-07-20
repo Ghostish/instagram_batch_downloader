@@ -163,9 +163,13 @@ class Spider:
                     'X-Instagram-GIS': gis})
 
                 more = json.loads(r.text)
-                if 'data' in more and 'user' in more['data'] and 'edge_owner_to_timeline_media' in more['data']['user']:
+                try:
+                    test = more['data']['user']['edge_owner_to_timeline_media']
                     self.query_id = query_id
                     break
+                except KeyError:
+                    pass
+
             print('downloading page', self.page_count + 1)
 
             request_variables = json.dumps({"id": self.target_id,
