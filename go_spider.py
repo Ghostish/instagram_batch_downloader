@@ -62,7 +62,7 @@ class Spider:
             if not os.path.isdir(account):
                 os.mkdir(account)
             for url in download_urls:
-                filename = account + '/' + url.split('/')[-1]
+                filename = account + '/' + url.split('/')[-1].split('?')[0]
                 temp_name = filename + '.tmp'
                 if os.path.isfile(filename):
                     if self.spider.auto_stop:
@@ -130,7 +130,8 @@ class Spider:
         r = self.session.get(self.BASE_URL + js_name)
         # find out the query id
         match = re.findall(r'queryId:"(.+?)"', r.text)
-        self.query_id = match[1]
+        self.query_ids = match
+        self.query_id = None
         # print(self.query_id)
 
     def download(self):
@@ -146,6 +147,25 @@ class Spider:
             self.page_count += 1
 
         while self.page_count < self.max_page and self.has_next:
+
+            # find out the correct query id
+            for query_id in self.query_ids:
+                request_variables = json.dumps({"id": self.target_id,
+                                                "first": 12,
+                                                "after": self.end_cursor})
+                query_data = {"query_hash": query_id,
+                              "variables": request_variables}
+                m = hashlib.md5()
+                m.update("{0}:{1}".format(self.rhx_gis,
+                                          request_variables).encode('utf-8'))
+                gis = m.hexdigest()
+                r = self.session.get(self.QUERY_URL, params=query_data, headers={
+                    'X-Instagram-GIS': gis})
+
+                more = json.loads(r.text)
+                if 'data' in more and 'user' in more['data'] and 'edge_owner_to_timeline_media' in more['data']['user']:
+                    self.query_id = query_id
+                    break
             print('downloading page', self.page_count + 1)
 
             request_variables = json.dumps({"id": self.target_id,
@@ -154,12 +174,14 @@ class Spider:
             query_data = {"query_hash": self.query_id,
                           "variables": request_variables}
             m = hashlib.md5()
-            m.update("{0}:{1}".format(self.rhx_gis, request_variables).encode('utf-8'))
+            m.update("{0}:{1}".format(self.rhx_gis,
+                                      request_variables).encode('utf-8'))
             gis = m.hexdigest()
             r = self.session.get(self.QUERY_URL, params=query_data, headers={
                                  'X-Instagram-GIS': gis})
             # print(r.url)
             # print(r)
+            # print(r.text)
             more = json.loads(r.text)
             if more['data']['user'] is None:
                 print('no more data')
