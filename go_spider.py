@@ -223,7 +223,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--maxPageCount', type=int, default=9999,
                         help='the maximum number of pages that you want to download. default 9999')
     parser.add_argument('-t', '--downloadType', choices=[Spider.TYPE_BOTH, Spider.TYPE_PHOTO, Spider.TYPE_VIDEO],
-                        default=Spider.TYPE_BOTH, help='the download type')
+                        default=Spider.TYPE_BOTH, help='the download type', type=str.upper)
     parser.add_argument('-S', '--AutoStop', action='store_true',
                         help='Stop the program automatically when it first sees a already downloaded file.')
     args = parser.parse_args()
