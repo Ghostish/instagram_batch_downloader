@@ -124,7 +124,7 @@ class Spider:
         # pattern:
         # <script type="text/javascript" src="/static/bundles/ConsumerCommons.js/53454d5cef0f.js" crossorigin="anonymous"></script>
         match = re.search(
-            r"/static/bundles/base/ProfilePageContainer\.js/.*\.js", r.text)
+            r"/.*/ProfilePageContainer\.js/.*\.js", r.text)
         js_name = match.group(0)
         # get the javascript
         r = self.session.get(self.BASE_URL + js_name)
