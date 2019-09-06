@@ -112,7 +112,7 @@ class Spider:
             r"<script.*?>\s*?window._sharedData\s*?=\s*?({.*}).*?</script>", r.text, flags=re.MULTILINE)
         shared_data = json.loads(match.group(1))
         target_user = shared_data['entry_data']['ProfilePage'][0]['graphql']['user']
-        self.rhx_gis = shared_data['rhx_gis']
+        # self.rhx_gis = shared_data['rhx_gis']
         self.target_id = target_user['id']
         self.csrf_token = shared_data['config']['csrf_token']
         self.has_next = target_user['edge_owner_to_timeline_media']['page_info']['has_next_page']
@@ -155,12 +155,11 @@ class Spider:
                                                 "after": self.end_cursor})
                 query_data = {"query_hash": query_id,
                               "variables": request_variables}
-                m = hashlib.md5()
-                m.update("{0}:{1}".format(self.rhx_gis,
-                                          request_variables).encode('utf-8'))
-                gis = m.hexdigest()
-                r = self.session.get(self.QUERY_URL, params=query_data, headers={
-                    'X-Instagram-GIS': gis})
+                # m = hashlib.md5()
+                # m.update("{0}:{1}".format(self.rhx_gis,
+                #                           request_variables).encode('utf-8'))
+                # gis = m.hexdigest()
+                r = self.session.get(self.QUERY_URL, params=query_data)
 
                 more = json.loads(r.text)
                 try:
@@ -177,12 +176,11 @@ class Spider:
                                             "after": self.end_cursor})
             query_data = {"query_hash": self.query_id,
                           "variables": request_variables}
-            m = hashlib.md5()
-            m.update("{0}:{1}".format(self.rhx_gis,
-                                      request_variables).encode('utf-8'))
-            gis = m.hexdigest()
-            r = self.session.get(self.QUERY_URL, params=query_data, headers={
-                                 'X-Instagram-GIS': gis})
+            # m = hashlib.md5()
+            # m.update("{0}:{1}".format(self.rhx_gis,
+            #                           request_variables).encode('utf-8'))
+            # gis = m.hexdigest()
+            r = self.session.get(self.QUERY_URL, params=query_data)
             # print(r.url)
             # print(r)
             # print(r.text)
