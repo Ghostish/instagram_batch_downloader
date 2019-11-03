@@ -59,10 +59,11 @@ class Spider:
                     else:
                         download_urls.append(node['display_url'])
 
-            if not os.path.isdir(account):
-                os.mkdir(account)
+            actual_download_dir = os.path.join(download_dir, account)
+            if not os.path.isdir(actual_download_dir):
+                os.mkdir(actual_download_dir)
             for url in download_urls:
-                filename = account + '/' + url.split('/')[-1].split('?')[0]
+                filename = os.path.join(actual_download_dir, url.split('/')[-1].split('?')[0])
                 temp_name = filename + '.tmp'
                 if os.path.isfile(filename):
                     if self.spider.auto_stop:
@@ -85,7 +86,7 @@ class Spider:
         def close(self):
             self.session.close()
 
-    def __init__(self, username, max_page_count, download_type, after, auto_stop):
+    def __init__(self, username, max_page_count, download_type, after, auto_stop, download_dir):
         self.session = requests.Session()
         self.item_count = 0
         self.max_page = max_page_count
@@ -96,6 +97,7 @@ class Spider:
         self.target_url = self.BASE_URL + '/' + username
         self.downloader = self.Downloader(self)
         self.end_cursor = None
+        self.download_dir = download_dir
         if after is not None:
             self.end_cursor = after['end_cursor']
             self.page_count = after['last_page']
@@ -224,6 +226,8 @@ if __name__ == '__main__':
                         default=Spider.TYPE_BOTH, help='the download type', type=str.upper)
     parser.add_argument('-S', '--AutoStop', action='store_true',
                         help='Stop the program automatically when it first sees a already downloaded file.')
+    parser.add_argument('-d', '--directory', default=os.path.curdir,
+                        help='the dirctory which you want to saving your downloads. defalut current dirctory("./")')
     args = parser.parse_args()
 
     username = args.username
@@ -231,9 +235,14 @@ if __name__ == '__main__':
     dtype = args.downloadType
     after = None
     auto_stop = args.AutoStop
+    download_dir = args.directory
+    if not os.path.isdir(download_dir):
+        print('dir: %s not exist' % download_dir)
+        exit(0)
+    meta_file_path = os.path.join(download_dir, 'ig_spider.meta')
     if args.Continue:
-        if os.path.isfile('ig_spider.meta'):
-            with open('ig_spider.meta', 'r') as f:
+        if os.path.isfile(meta_file_path):
+            with open(meta_file_path, 'r') as f:
                 meta = json.loads(f.read())
             username = meta['username']
             max_page = int(meta['max_page'])
@@ -245,8 +254,8 @@ if __name__ == '__main__':
             print('can not find ig_spider.meta under', os.getcwd())
             exit(0)
     if args.After:
-        if os.path.isfile('ig_spider.meta'):
-            with open('ig_spider.meta', 'r') as f:
+        if os.path.isfile(meta_file_path):
+            with open(meta_file_path, 'r') as f:
                 meta = json.loads(f.read())
             last_page = int(meta['last_page'])
             after = {'end_cursor': meta['end_cursor'], 'last_page': last_page}
@@ -259,7 +268,7 @@ if __name__ == '__main__':
         print('Please provide a username')
         exit(0)
 
-    s = Spider(username, max_page_count, dtype, after, auto_stop)
+    s = Spider(username, max_page_count, dtype, after, auto_stop, download_dir)
     try:
         s.prepare()
         s.download()
@@ -276,7 +285,7 @@ if __name__ == '__main__':
     finally:
         s.close()
         print('Downloaded', s.item_count, 'items')
-        with open('ig_spider.meta', 'w') as f:
+        with open(meta_file_path, 'w') as f:
             meta = s.json_dump()
             f.write(meta)
             print('ig_spider.meta was saved')
