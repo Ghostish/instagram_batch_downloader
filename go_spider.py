@@ -227,7 +227,7 @@ if __name__ == '__main__':
     parser.add_argument('-S', '--AutoStop', action='store_true',
                         help='Stop the program automatically when it first sees a already downloaded file.')
     parser.add_argument('-d', '--directory', default=os.path.curdir,
-                        help='the dirctory which you want to saving your downloads. defalut current dirctory("./")')
+                        help='the directory which you want to saving your downloads. defalut current directory("./")')
     args = parser.parse_args()
 
     username = args.username

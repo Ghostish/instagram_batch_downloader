@@ -29,7 +29,7 @@ A python script which allows you to download all the photos and video from an in
     Stop the program automatically when seeing an already downloaded file the first time.
 
 + -d path:
-    the dirctory which you want to saving your downloads. defalut current dirctory("./").
+    the directory which you want to saving your downloads. defalut current directory("./").
 ## examples:
 ```python
 python3 go_spider.py -u nasa -m 5 -t video
