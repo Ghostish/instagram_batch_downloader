@@ -27,6 +27,9 @@ A python script which allows you to download all the photos and video from an in
     Download posts after the last download, Similiar to -C, but allow you to reconfig -t and -m
 + -S   
     Stop the program automatically when seeing an already downloaded file the first time.
+
++ -d path:
+    the directory which you want to saving your downloads. defalut current directory("./").
 ## examples:
 ```python
 python3 go_spider.py -u nasa -m 5 -t video
@@ -34,6 +37,17 @@ python3 go_spider.py -u nasa -m 5 -t video
 
 ```python
 python3 go_spider.py -C
+```
+
+```python
+mkdir instagram
+python3 go_spider.py -u nasa -m 5 -t video -d ./instagram
+```
+
+## docker:
+```
+docker build -t instagram_downloader .
+docker run -it --rm -v /path/to/save/downloads:/downloads instagram_downloader -u nasa -m 5 -t video
 ```
 
 ## LICENSE
